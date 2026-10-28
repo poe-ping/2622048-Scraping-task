@@ -1,4 +1,5 @@
 import csv
+import os
 import time
 from urllib.parse import urljoin, urlparse
 from bs4 import BeautifulSoup
@@ -15,9 +16,11 @@ headers = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
 }
 
+MAX_PAGES = 30  
+
 print("=== サイトマップ抽出処理を開始します ===")
 
-while queue:
+while queue and len(sitemap_dict) < MAX_PAGES:
     current_url = queue.pop(0).split("#")[0]
 
     if not current_url or current_url in visited:
@@ -51,8 +54,8 @@ while queue:
 
         title_tag = soup.find("title")
         title_text = (
-            title_tag.string.strip()
-            if (title_tag and title_tag.string)
+            title_tag.get_text(strip=True)
+            if title_tag
             else "タイトルなし"
         )
         sitemap_dict[current_url] = title_text
@@ -70,7 +73,9 @@ while queue:
         print(f"エラー発生 ({current_url}): {e}")
         continue
 
-csv_file = "musashino_sitemap.csv"
+script_dir = os.path.dirname(os.path.abspath(__file__)) if '__file__' in locals() else os.getcwd()
+csv_file = os.path.join(script_dir, "musashino_sitemap.csv")
+
 with open(csv_file, mode="w", encoding="utf-8-sig", newline="") as f:
     writer = csv.writer(f)
     writer.writerow(["URL", "Title"])
@@ -78,5 +83,5 @@ with open(csv_file, mode="w", encoding="utf-8-sig", newline="") as f:
         writer.writerow([url, title])
 
 print(
-    f"\n=== 完了: 合計 {len(sitemap_dict)} ページのURLとタイトルを {csv_file} に保存しました"
+    f"\n=== 完了: 合計 {len(sitemap_dict)} ページのURLとタイトルを {csv_file} に保存しました ==="
 )
